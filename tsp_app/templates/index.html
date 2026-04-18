@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP/VRP Solver</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='style.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>TSP/VRP Solver</h1>
+            <p>Traveling Salesman Problem - Interactive Solver</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Step 1: Node Input -->
+            <section id="step1" class="step active">
+                <div class="step-header">
+                    <h2>Step 1: Enter Number of Nodes</h2>
+                </div>
+                <div class="step-content">
+                    <div class="input-group">
+                        <label for="nodeCount">Number of Nodes:</label>
+                        <input type="number" id="nodeCount" min="2" max="9" value="{{ default_nodes }}" />
+                        <span class="info-text">Available: 2 to 9 nodes</span>
+                    </div>
+                    <button class="btn btn-primary" onclick="loadNodes()">Next: Visualize Network</button>
+                </div>
+            </section>
+
+            <!-- Step 2: Node Visualization -->
+            <section id="step2" class="step">
+                <div class="step-header">
+                    <h2>Step 2: View Network & Distance Matrix</h2>
+                </div>
+                <div class="step-content">
+                    
+                    
+                    <!-- Distance matrix section -->
+                    <div class="matrix-section">
+                        <h3>Distance Matrix</h3>
+                        <div id="distanceMatrix" class="matrix-table"></div>
+                    </div>
+
+                    <!-- Graph section -->
+                    <div class="graph-section">
+                        <h3>Network Graph</h3>
+                        <div class="graph-container">
+                            <svg id="graphSvg" class="graph-svg"></svg>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="goToStep(1)">Back</button>
+                        <button class="btn btn-primary" onclick="goToStep(3)">Next: Choose Option</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Option Selection -->
+            <section id="step3" class="step">
+                <div class="step-header">
+                    <h2>Step 3: Select Solving Option</h2>
+                </div>
+                <div class="step-content">
+                    <div class="option-container">
+                        <div class="option" onclick="selectOption(0)">
+                            <div class="option-header">
+                                <input type="radio" name="option" value="0" id="option0" />
+                                <label for="option0"><strong>Option 0: No Subtour Elimination</strong></label>
+                            </div>
+                            <p>Just print the subtours from assignment relaxation. Fastest to implement.</p>
+                        </div>
+
+                        <div class="option" onclick="selectOption(1)">
+                            <div class="option-header">
+                                <input type="radio" name="option" value="1" id="option1" />
+                                <label for="option1"><strong>Option 1: Manual Subtour Elimination</strong></label>
+                            </div>
+                            <p>Enter subtours after seeing results. Can target specific subtours.</p>
+                        </div>
+
+                        <div class="option" onclick="selectOption(2)">
+                            <div class="option-header">
+                                <input type="radio" name="option" value="2" id="option2" />
+                                <label for="option2"><strong>Option 2: Automatic Subtour Elimination</strong></label>
+                            </div>
+                            <p>Fully automated. Ensures convergence to single tour.</p>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="goToStep(2)">Back</button>
+                        <button class="btn btn-primary" onclick="startSolving()">Start Solving</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 4: Solving & Results -->
+            <section id="step4" class="step">
+                <div class="step-header">
+                    <h2>Step 4: Iterative Solving</h2>
+                    <div class="iteration-info">
+                        <span id="iterationNum">Iteration: 0</span>
+                        <span id="objectiveVal">Objective: 0.00</span>
+                        <span id="subtoursNum">Subtours: 0</span>
+                    </div>
+                </div>
+                <div class="step-content">
+                    <div class="results-container">
+                        <!-- Info panel -->
+                        <div class="info-panel">
+                            <div class="info-section">
+                                <h4>Selected Arcs</h4>
+                                <pre id="arcsDisplay" class="display-box"></pre>
+                            </div>
+                            <div class="info-section">
+                                <h4>Subtours Found</h4>
+                                <pre id="subtoursDisplay" class="display-box"></pre>
+                            </div>
+                            <div class="info-section">
+                                <h4>Solution Path</h4>
+                                <pre id="solutionPathDisplay" class="display-box"></pre>
+                            </div>
+                            
+                            <!-- Manual subtour input for Option 1 -->
+                            <div id="manualSubtourSection" class="info-section" style="display: none;">
+                                <h4>Enter Manual Subtours (Option 1)</h4>
+                                <textarea id="subtourInput" class="subtour-input" placeholder="[[0,5,0],[1,3,1]]"></textarea>
+                                <button class="btn btn-small" onclick="addManualSubtours()">Add Subtours & Solve</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full-width solution graph -->
+                    <div class="graph-section">
+                        <h3>Solution Graph</h3>
+                        <div class="graph-container">
+                            <svg id="solutionGraph" class="graph-svg"></svg>
+                        </div>
+                    </div>
+
+                    <!-- Control buttons -->
+                    <div class="button-group">
+                        <button class="btn btn-secondary" onclick="goToStep(3)">Back</button>
+                        <button class="btn btn-success" id="continueBtn" onclick="nextIteration()" style="display: none;">Continue Solving</button>
+                        <button class="btn btn-info" id="solvedBtn" onclick="goToStep(1)" style="display: none;">Solved! Start Over</button>
+                        <button class="btn btn-danger" onclick="goToStep(3)">Stop</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Status Message -->
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ request.url_for('static', path='script.js') }}"></script>
+</body>
+</html>
