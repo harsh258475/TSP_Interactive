@@ -41,6 +41,12 @@ solver_state = {
 }
 
 
+@app.get('/health')
+async def health():
+    """Lightweight healthcheck endpoint for hosting platforms."""
+    return {'status': 'ok'}
+
+
 @app.get('/', response_class=HTMLResponse)
 async def index(request: Request):
     """Main page"""
